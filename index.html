@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogs admin</title>
+</head>
+<body>
+    <div id="list"></div>
+    <input type="file" id="file">
+    <script>
+        function updateCatalogs() {
+            fetch('https://6mb7h84bn5.execute-api.us-east-1.amazonaws.com/dev/catalogs').then((response) => response.json()).then((catalogs) => {
+                document.querySelector('#list').innerHTML = catalogs.join('<br>');
+            });
+        }
+
+        const inputElement = document.querySelector('#file');
+        inputElement.addEventListener('change', () => {
+            const selectedFile = inputElement.files.item(0);
+            inputElement.value = '';
+
+            fetch('https://6mb7h84bn5.execute-api.us-east-1.amazonaws.com/dev/catalogs?name=' + encodeURIComponent(selectedFile.name), { method: 'POST' }).then((response) => response.text()).then((url) => {
+                fetch(url, { method: 'PUT', body: selectedFile }).then(() => {
+                    updateCatalogs();
+                });
+            });
+        }, false);
+
+        updateCatalogs();
+    </script>
+</body>
+</html>

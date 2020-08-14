@@ -1,0 +1,32 @@
+service: node-in-aws-cloud-products
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+  environment:
+    DB_HOSTNAME: "database-1.cgvqi1xywgo1.us-east-1.rds.amazonaws.com"
+    DB_DBNAME: "postgres"
+    DB_USERNAME: "postgres"
+    DB_PASSWORD: "tfnwIXSEhQRQfgabCSSJ"
+
+package:
+  include:
+    - ../../libs/config.js
+  exlude:
+    - package.json
+    - package-lock.json
+
+functions:
+  productsList:
+    handler: handler.productsList
+    events:
+      - http: GET products
+  productsCreate:
+    handler: handler.productsCreate
+    events:
+      - http: POST products
+  productsDelete:
+    handler: handler.productsDelete
+    events:
+      - http: DELETE products/{productId}

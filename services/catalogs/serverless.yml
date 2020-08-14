@@ -1,0 +1,63 @@
+service: node-in-aws-cloud-catalogs
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action: "s3:*"
+      Resource:
+        - "arn:aws:s3:::node-in-aws-cloud-catalogs"
+        - "arn:aws:s3:::node-in-aws-cloud-catalogs/*"
+    - Effect: "Allow"
+      Action: "sqs:*"
+      Resource:
+        - Fn::GetAtt: [ SQSQueue, Arn ]
+
+  environment:
+    SQS_URL:
+      Ref: SQSQueue
+
+package:
+  include:
+    - ../../libs/config.js
+  exlude:
+    - package.json
+    - package-lock.json
+
+resources:
+  Resources:
+    SQSQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: "node-in-aws-cloud-queue"
+
+functions:
+  catalogsList:
+    handler: handler.catalogsList
+    events:
+      - http: GET catalogs
+  catalogUpload:
+    handler: handler.catalogUpload
+    events:
+      - http: POST catalogs
+        request:
+          parameters:
+            querystrings:
+              name: true
+  catalogParse:
+    handler: handler.catalogParse
+    events:
+      - s3:
+          bucket: node-in-aws-cloud-catalogs
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: uploaded/
+          existing: true
+  catalogItemProcess:
+    handler: handler.catalogItemProcess
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [ SQSQueue, Arn ]

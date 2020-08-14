@@ -1,0 +1,16 @@
+{
+  "name": "catalogs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.729.0",
+    "csv-parser": "^2.3.3",
+    "dotenv": "^8.2.0",
+    "knex": "^0.21.2",
+    "pg": "^8.3.0"
+  }
+}
