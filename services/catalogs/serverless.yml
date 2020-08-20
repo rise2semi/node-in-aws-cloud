@@ -6,18 +6,28 @@ provider:
 
   iamRoleStatements:
     - Effect: "Allow"
-      Action: "s3:*"
+      Action: "s3:ListBucket"
       Resource:
         - "arn:aws:s3:::node-in-aws-cloud-catalogs"
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource:
         - "arn:aws:s3:::node-in-aws-cloud-catalogs/*"
     - Effect: "Allow"
       Action: "sqs:*"
       Resource:
         - Fn::GetAtt: [ SQSQueue, Arn ]
+    - Effect: "Allow"
+      Action: "sns:*"
+      Resource:
+        Ref: SNSTopic
 
   environment:
     SQS_URL:
       Ref: SQSQueue
+    SNS_ARN:
+      Ref: SNSTopic
 
 package:
   include:
@@ -32,6 +42,17 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: "node-in-aws-cloud-queue"
+    SNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: catalog-process-topic
+    SNSSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: rise2semi@gmail.com
+        Protocol: email
+        TopicArn:
+          Ref: SNSTopic
 
 functions:
   catalogsList:
@@ -59,5 +80,8 @@ functions:
     handler: handler.catalogItemProcess
     events:
       - sqs:
+          batchSize: 5
           arn:
-            Fn::GetAtt: [ SQSQueue, Arn ]
+            Fn::GetAtt:
+              - SQSQueue
+              - Arn

@@ -37,8 +37,8 @@ module.exports = {
             Key: catalogPath,
             Expires: 60,
             ContentType: 'text/csv'
-        }
-    
+        };
+
         return new Promise((resolve, reject) => {
             s3.getSignedUrl('putObject', params, (error, url) => {
                 if (error) {
@@ -54,7 +54,7 @@ module.exports = {
         });
     },
 
-    catalogParse: function(event, context, callback) {
+    catalogParse: function(event) {
         const s3 = new AWS.S3({ region: 'us-east-1' });
         const sqs = new AWS.SQS();
 
@@ -69,38 +69,43 @@ module.exports = {
                     sqs.sendMessage({
                         QueueUrl: process.env.SQS_URL,
                         MessageBody: JSON.stringify(data)
+                    }, (error, data) => {
+                        console.log(error, data);
                     });
                 })
                 .on('end', () => {
                     s3.copyObject({
                         Bucket: BUCKET,
-                        CopySource: record.s3.object.key,
+                        CopySource: BUCKET + '/' + record.s3.object.key,
                         Key: record.s3.object.key.replace('uploaded', 'parsed')
                     }).promise().then(() => {
                         s3.deleteObject({
                             Bucket: BUCKET,
                             Key: record.s3.object.key
-                        }).promise().then(() => {
-                            callback(null, { statusCode: 200 })
-                        })
-                    });
+                        }, () => {
+                            console.log(record.s3.object.key.split('/')[1] + ' is parsed');
+                        });
+                    })
                 });
         });
     },
 
     catalogItemProcess: async function(event) {
-        event.Records.forEach((item) => {
-            const item = JSON.parse(item.Body);
+        const sns = new AWS.SNS({ region: 'us-east-1' });
+
+        event.Records.forEach((record) => {
+            const item = JSON.parse(record.body);
             const product = await db('products').insert({ name: item.name });
             if (!product) {
                 console.error('Cannot create a product');
             }
         });
-        
-        const response = {
-            statusCode: 201
-        };
-        
-        return response;
+
+        sns.publish({
+            Message: 'Items were processed',
+            TopicArn: process.env.SNS_ARN
+        }).promise().then((error, data) => {
+            console.log(error, data)
+        });
     }
 };
